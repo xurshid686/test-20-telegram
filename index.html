@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>IELTS Listening – Part 1 (Telegram Reporting)</title>
+<style>
+  :root{--grey:#f1f2ec;--border:#d9d9d9;--ok:#28a745;--bad:#dc3545;--ink:#333;--accent:#4a90e2}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:Arial,Helvetica,sans-serif;background:#f3f8ff;color:var(--ink);
+    line-height:1.6;display:flex;flex-direction:column;align-items:center;
+    padding:24px;padding-bottom:100px;
+  }
+  .container{width:100%;max-width:820px}
+  h1.title{font-size:22px;text-align:center;margin:8px 0 14px}
+  .score-banner{margin:10px 0 18px;padding:10px 14px;border-left:6px solid var(--ok);background:#e9f7ef;font-weight:700;display:none}
+  .progress{margin:0 0 12px 0;color:#666}
+  .part-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;font-weight:700}
+  .instruction{margin:4px 0 12px;text-align:center}
+  .paper{border:1px solid #111;padding:32px 26px;background:#f3f8ff}
+  h2.section{text-align:center;font-size:18px;margin:6px 0 14px}
+  ul{margin-left:20px}
+  li{margin:8px 0}
+  .text-input{
+    min-width:95px;max-width:220px;width:150px;height:36px;line-height:34px;
+    border:1px solid #666;border-radius:4px;padding:0 8px;margin:0 4px;text-align:center;font-size:16px
+  }
+  .text-input.correct{background:#d4edda!important;border-color:var(--ok)!important;color:#155724!important}
+  .text-input.incorrect{background:#f8d7da!important;border-color:var(--bad)!important;color:#721c24!important}
+  .small{width:120px}
+  /* Audio bar */
+  .audio-bar{display:flex;align-items:center;gap:10px;background:#f3f8ff;border:1px solid #c9d8ff;padding:10px 12px;border-radius:8px;margin-bottom:10px}
+  .audio-btn{border:none;border-radius:6px;padding:8px 14px;font-weight:700;background:#4a90e2;color:#fff;cursor:pointer}
+  .audio-time{color:#365;font-size:14px}
+  /* Nav bar */
+  .navbar{
+    display:flex;align-items:center;gap:18px;padding:8px 12px;border-top:1px solid #ccc;
+    position:fixed;bottom:0;left:0;right:0;background:#f3f8ff;z-index:100;overflow-x:auto;white-space:nowrap
+  }
+  .nav-label{font-weight:bold;margin-right:6px}
+  .sub-nav{display:flex;gap:4px}
+  .nav-btn{
+    width:30px;height:30px;line-height:28px;border:1px solid #ccc;border-radius:3px;text-align:center;cursor:pointer;
+    font-size:14px;background:#fff;text-decoration:none;display:flex;align-items:center;justify-content:center
+  }
+  .nav-btn.answered{background:#add8e6;border-color:#0000ff;color:#000}
+  .nav-btn.correct{background:var(--ok);border-color:var(--ok);color:#fff}
+  .nav-btn.incorrect{background:var(--bad);border-color:var(--bad);color:#fff}
+  #submit-btn{padding:10px 12px;border:none;border-radius:4px;background:var(--accent);color:#fff;cursor:pointer;font-weight:bold;font-size:16px;margin-left:auto}
+  .correct-answer{font-size:14px;color:#155724;margin-left:6px}
+  /* Highlight tools */
+  .highlight-toolbar{
+    position:absolute;background:#fff;border:1px solid #ccc;padding:6px;border-radius:6px;
+    box-shadow:0 2px 8px rgba(0,0,0,.15);display:none;z-index:10000
+  }
+  .highlight-toolbar button{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 10px;margin-right:6px;cursor:pointer;font-size:13px}
+  .highlight-toolbar .remove-button{background:var(--bad)}
+  ::highlight(user-hl){background-color:rgba(255,255,0,.4);color:inherit}
+  .pdf-highlight{background-color:rgba(255,255,0,.3)!important;color:inherit!important;display:inline!important;box-decoration-break:clone}
+
+  /* Start modal */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:9999
+  }
+  .modal{background:#fff;border-radius:10px;max-width:520px;width:92%;padding:20px;border:1px solid #ddd}
+  .modal h3{margin-bottom:8px;text-align:center}
+  .row{margin:8px 0}
+  .btn{border:none;border-radius:8px;padding:10px 14px;background:#4a90e2;color:#fff;font-weight:700;cursor:pointer}
+  .muted{color:#666;font-size:14px;margin-top:6px}
+  input,textarea,select{autocomplete:off;-webkit-autocomplete:off}
+</style>
+</head>
+<body>
+  <!-- highlight bubbles -->
+  <div class="highlight-toolbar" id="highlight-toolbar"><button id="hl-add">Highlight</button></div>
+  <div class="highlight-toolbar" id="hl-remove-toolbar"><button id="hl-remove-btn" class="remove-button">Remove Highlight</button></div>
+
+  <!-- Start modal (asks for candidate name) -->
+  <div class="modal-backdrop" id="startModal">
+    <div class="modal">
+      <h3>Enter Candidate Details</h3>
+      <div class="row">
+        <label for="candidateName"><strong>Name</strong></label><br/>
+        <input id="candidateName" type="text" class="text-input" placeholder="Full name" style="width:100%" autocomplete="off" />
+      </div>
+      <div class="row">
+        <button id="startBtn" class="btn">Start Test</button>
+      </div>
+      <p class="muted">Your time starts when you press “Start Test”.</p>
+    </div>
+  </div>
+
+  <div class="container" aria-hidden="true" id="mainContent">
+    <!-- Audio Play/Pause -->
+    <div class="audio-bar">
+      <button id="audioBtn" class="audio-btn" type="button">► Play audio</button>
+      <span class="audio-time" id="audioTime">00:00 / 00:00</span>
+      <span style="margin-left:auto;font-weight:700">Time: <span id="timer">00:00</span></span>
+    </div>
+    <audio id="testAudio" preload="metadata">
+      <source src="https://github.com/xurshid686/test20audio/raw/9d5d2a99b31d2901ed31fd92a3a087bf914fca5d/T20%20Adventure%20Camp.mp3" type="audio/mpeg"/>
+    </audio>
+
+    <h1 class="title">IELTS Listening – Part 1</h1>
+    <div id="scoreBanner" class="score-banner"></div>
+    <div id="progress" class="progress">Progress: 0/10 answered</div>
+
+    <!-- PART 1 (same structure as your file) -->
+    <section id="part1">
+      <div class="part-head"><div><strong>PART 1</strong></div><div><em>Questions 1–10</em></div></div>
+      <p class="instruction">Complete the notes below.</p>
+      <p class="instruction"><strong>Write ONE WORD AND/OR A NUMBER</strong> for each answer.</p>
+
+      <div class="paper">
+        <h2 class="section">Adventure Camp</h2>
+
+        <div class="row"><strong>Accommodation:</strong> • Tents are provided.</div>
+
+        <div class="row" style="margin-top:8px;">
+          • The camp can take up to <input class="text-input small" id="q1" placeholder="1." autocomplete="off"/> people.
+        </div>
+
+        <h3 style="margin:14px 0 6px">Cost:</h3>
+        <ul>
+          <li>£ <input class="text-input small" id="q2" placeholder="2." autocomplete="off"/> for two days</li>
+          <li>Transport is not included.</li>
+        </ul>
+
+        <h3 style="margin:14px 0 6px">DAY ONE</h3>
+        <p><strong>Morning:</strong> • A lesson in riding a <input class="text-input small" id="q3" placeholder="3." autocomplete="off"/>.</p>
+
+        <p style="margin-top:8px;"><strong>Afternoon:</strong></p>
+        <ul>
+          <li>Go down the river by <input class="text-input small" id="q4" placeholder="4." autocomplete="off"/>.</li>
+          <li>Explore one of the <input class="text-input small" id="q5" placeholder="5." autocomplete="off"/> 
+            <div style="margin-left:18px;">– (a <input class="text-input small" id="q6" placeholder="6." autocomplete="off"/> is provided)</div>
+          </li>
+        </ul>
+
+        <p><strong>Evening:</strong> • Dinner – either a barbecue, <input class="text-input small" id="q7" placeholder="7." autocomplete="off"/> , or pizza</p>
+
+        <h3 style="margin:14px 0 6px">DAY TWO</h3>
+        <p><strong>Morning:</strong></p>
+        <ul>
+          <li>Cycle to a <input class="text-input small" id="q8" placeholder="8." autocomplete="off"/> and back</li>
+          <li>Free time</li>
+        </ul>
+
+        <p><strong>Afternoon:</strong></p>
+        <ul>
+          <li>Play <input class="text-input small" id="q9" placeholder="9." autocomplete="off"/>.</li>
+          <li>Learn how to make <input class="text-input small" id="q10" placeholder="10." autocomplete="off"/>.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- bottom nav (Part 1 only) -->
+    <nav class="navbar">
+      <span class="nav-label">Part 1</span>
+      <div class="sub-nav">
+        <a href="#q1" class="nav-btn" id="nav1" data-q="1">1</a>
+        <a href="#q2" class="nav-btn" id="nav2" data-q="2">2</a>
+        <a href="#q3" class="nav-btn" id="nav3" data-q="3">3</a>
+        <a href="#q4" class="nav-btn" id="nav4" data-q="4">4</a>
+        <a href="#q5" class="nav-btn" id="nav5" data-q="5">5</a>
+        <a href="#q6" class="nav-btn" id="nav6" data-q="6">6</a>
+        <a href="#q7" class="nav-btn" id="nav7" data-q="7">7</a>
+        <a href="#q8" class="nav-btn" id="nav8" data-q="8">8</a>
+        <a href="#q9" class="nav-btn" id="nav9" data-q="9">9</a>
+        <a href="#q10" class="nav-btn" id="nav10" data-q="10">10</a>
+      </div>
+      <button id="submit-btn">Submit Answers</button>
+    </nav>
+  </div>
+
+<script>
+  // --- Candidate + Timer ---
+  let candidateName = '', startTs = null, timerInt = null;
+  function fmtMMSS(sec){ sec=Math.max(0,Math.floor(sec||0)); const m=Math.floor(sec/60), s=sec%60; return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); }
+  function startTimer(){
+    startTs = Date.now();
+    const tEl = document.getElementById('timer');
+    timerInt = setInterval(()=>{ tEl.textContent = fmtMMSS((Date.now()-startTs)/1000); }, 250);
+  }
+
+  document.getElementById('startBtn').addEventListener('click', ()=>{
+    const val = (document.getElementById('candidateName').value||'').trim();
+    if(!val){ alert('Please enter the candidate name.'); return; }
+    candidateName = val;
+    document.getElementById('startModal').style.display='none';
+    document.getElementById('mainContent').removeAttribute('aria-hidden');
+    startTimer();
+  });
+
+  // ---- Audio controls ----
+  (function(){
+    const audio = document.getElementById('testAudio');
+    const btn = document.getElementById('audioBtn');
+    const time = document.getElementById('audioTime');
+    function fmt(s){ if(isNaN(s)||!isFinite(s)) return '00:00'; const m=Math.floor(s/60),sec=Math.floor(s%60); return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0'); }
+    function updateTime(){ time.textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration||0)}`; }
+    btn.addEventListener('click', async () => {
+      try{
+        if(audio.paused){ await audio.play(); btn.textContent='❚❚ Pause'; }
+        else { audio.pause(); btn.textContent='► Play audio'; }
+      }catch(e){ console.warn(e); }
+    });
+    audio.addEventListener('loadedmetadata', updateTime);
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('pause', () => btn.textContent='► Play audio');
+    audio.addEventListener('playing', () => btn.textContent='❚❚ Pause');
+    updateTime();
+  })();
+
+  // ---- Answers (yours) ----
+  const answers = {
+    q1:['44','FORTY FOUR','FORTY-FOUR'],
+    q2:['180','ONE HUNDRED AND EIGHTY','ONE-HUNDRED-AND-EIGHTY'],
+    q3:'HORSE', q4:'CANOE', q5:'CAVES', q6:'HELMET', q7:'PASTA', q8:'VILLAGE', q9:'BASKETBALL', q10:'BUTTER'
+  };
+  function norm(s){ return (s||'').toString().trim().toUpperCase().replace(/,/g,'').replace(/-/g,' ').replace(/\s+/g,' '); }
+
+  // Progress + nav colouring
+  function updateProgress(){
+    let count=0;
+    for(let i=1;i<=10;i++){
+      const id='q'+i, el=document.getElementById(id), nav=document.getElementById('nav'+i);
+      const filled=!!(el && el.value.trim());
+      if(nav) nav.classList.toggle('answered',filled);
+      if(filled) count++;
+    }
+    document.getElementById('progress').textContent=`Progress: ${count}/10 answered`;
+  }
+  function markNav(i, ok){
+    const nav=document.getElementById('nav'+i);
+    if(!nav) return;
+    nav.classList.remove('correct','incorrect');
+    nav.classList.add(ok?'correct':'incorrect');
+    if(!ok) nav.classList.add('answered');
+  }
+  function showSolutionNextTo(el, text){
+    if(!el) return;
+    const span=document.createElement('span');
+    span.className='correct-answer';
+    span.textContent=' (Correct: '+text+')';
+    el.parentNode.insertBefore(span, el.nextSibling);
+  }
+  function clearFeedback(){
+    document.querySelectorAll('.text-input').forEach(i=>i.classList.remove('correct','incorrect'));
+    document.querySelectorAll('.correct-answer').forEach(n=>n.remove());
+    document.querySelectorAll('.nav-btn').forEach(n=>n.classList.remove('correct','incorrect'));
+  }
+
+  // Submit / grade + send to Telegram
+  async function submitAnswers(){
+    if(!candidateName){ alert('Please enter your name first.'); return; }
+    clearFeedback();
+    let score=0;
+    const details = [];
+
+    for(let i=1;i<=10;i++){
+      const id='q'+i, el=document.getElementById(id), key=answers[id];
+      let ok=false, display = Array.isArray(key) ? key[0] : key;
+      const valRaw = el ? el.value : '';
+      const val = norm(valRaw);
+      if(Array.isArray(key)){
+        ok = key.map(v=>norm(v)).includes(val);
+      }else{ ok = val === norm(key); }
+      if(el && valRaw.trim()){
+        if(ok) score++;
+        el.classList.toggle('correct', ok);
+        el.classList.toggle('incorrect', !ok);
+        markNav(i, ok);
+        if(!ok) showSolutionNextTo(el, Array.isArray(display)?display[0]:display);
+      }
+      const line = `${i}) ${valRaw || '(blank)'} ${ok ? '✅' : '❌'}${ok ? '' : ` — correct: ${Array.isArray(display)?display[0]:display}`}`;
+      details.push(line);
+    }
+
+    const seconds = startTs ? Math.round((Date.now()-startTs)/1000) : 0;
+    const timeSpent = fmtMMSS(seconds);
+
+    const banner=document.getElementById('scoreBanner');
+    banner.textContent=`Score: ${score}/10 correct (Time: ${timeSpent})`;
+    banner.style.display='block';
+    try{window.scrollTo({top:0,behavior:'smooth'});}catch(_){window.scrollTo(0,0);}
+
+    // send report to backend
+    const payload = {
+      name: candidateName,
+      time_spent: timeSpent,
+      score: `${score}/10`,
+      answers: details
+    };
+
+    try{
+      const res = await fetch('/api/report', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'X-Shared-Secret': (window.REPORT_SHARED || '') // optional if you want to inline; recommended to leave empty
+        },
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok){ throw new Error('Report send failed: '+res.status); }
+    }catch(err){
+      console.error(err);
+      alert('Could not send Telegram report. (You can still view your score above.)');
+    }
+  }
+
+  // Highlighting (stable, add + click-to-remove)
+  let selectionRange=null, hlList, highlightStack=[];
+  const HL_NAME='user-hl';
+  function initHighlightList(){
+    if(CSS.highlights){hlList=new Highlight();CSS.highlights.set(HL_NAME,hlList);} else {hlList=null;}
+  }
+  function showToolbarAt(range){
+    const tb=document.getElementById('highlight-toolbar');
+    const r=range.getBoundingClientRect(); tb.style.display='block';
+    const h=tb.offsetHeight||38; tb.style.top=(r.top+window.scrollY-h-6)+'px'; tb.style.left=(r.left+window.scrollX)+'px';
+  }
+  function fallbackWrap(range){
+    const sel=range.cloneRange();
+    const walker=document.createTreeWalker(sel.commonAncestorContainer,NodeFilter.SHOW_TEXT,{acceptNode(n){
+      const r=document.createRange(); try{r.selectNodeContents(n);
+        if(sel.compareBoundaryPoints(Range.END_TO_START,r)<=0) return NodeFilter.FILTER_REJECT;
+        if(sel.compareBoundaryPoints(Range.START_TO_END,r)>=0) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;}catch(_){return NodeFilter.FILTER_REJECT;}
+    }});
+    const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(node=>{
+      const r=document.createRange(); r.selectNodeContents(node);
+      let s=0,e=node.length; if(node===sel.startContainer) s=sel.startOffset; if(node===sel.endContainer) e=sel.endOffset; if(e<s) return;
+      try{r.setStart(node,s); r.setEnd(node,e); if(!r.collapsed){const span=document.createElement('span'); span.className='pdf-highlight';
+        try{r.surroundContents(span);}catch(_){span.appendChild(r.extractContents()); r.insertNode(span);} highlightStack.push(span);}}catch(_){}
+    });
+  }
+  function initHighlighting(){
+    document.addEventListener('mouseup',e=>{
+      if(e.target.closest('#highlight-toolbar,#hl-remove-toolbar')) return;
+      const sel=window.getSelection();
+      if(sel && sel.rangeCount && sel.toString().trim().length>0){selectionRange=sel.getRangeAt(0).cloneRange(); showToolbarAt(selectionRange);}
+      else document.getElementById('highlight-toolbar').style.display='none';
+    });
+    document.getElementById('hl-add').addEventListener('click',()=>{
+      if(!selectionRange) return;
+      if(hlList){const r=selectionRange.cloneRange(); hlList.add(r); highlightStack.push(r);}
+      else {fallbackWrap(selectionRange);}
+      try{window.getSelection().removeAllRanges();}catch(_){}
+      document.getElementById('highlight-toolbar').style.display='none';
+    });
+    // click-to-remove
+    let pendingRange=null, pendingNode=null;
+    function showRemoverAt(x,y){const rm=document.getElementById('hl-remove-toolbar'); rm.style.display='block';
+      const h=rm.offsetHeight||38; rm.style.top=(y+window.scrollY-h-6)+'px'; rm.style.left=(x+window.scrollX)+'px';}
+    function hideRemover(){document.getElementById('hl-remove-toolbar').style.display='none'; pendingRange=null; pendingNode=null;}
+    document.addEventListener('click',e=>{
+      if(e.target.closest('#highlight-toolbar,#hl-remove-toolbar')) return;
+      pendingRange=null; pendingNode=null;
+      const span=e.target.closest('.pdf-highlight'); if(span){pendingNode=span; showRemoverAt(e.clientX,e.clientY); return;}
+      if(CSS.highlights && highlightStack.length){
+        let cr=null;
+        if(document.caretRangeFromPoint){cr=document.caretRangeFromPoint(e.clientX,e.clientY);}
+        else if(document.caretPositionFromPoint){const p=document.caretPositionFromPoint(e.clientX,e.clientY);
+          if(p){cr=document.createRange(); try{cr.setStart(p.offsetNode,p.offset); cr.setEnd(p.offsetNode,p.offset);}catch(_){cr=null;}}}
+        if(cr){
+          for(let i=highlightStack.length-1;i>=0;i--){const r=highlightStack[i]; if(r.getClientRects){
+            const rects=r.getClientRects(); for(let j=0;j<rects.length;j++){const rc=rects[j];
+              if(e.clientX>=rc.left && e.clientX<=rc.right && e.clientY<=rc.bottom && e.clientY>=rc.top){pendingRange=r; showRemoverAt(e.clientX,e.clientY); return;}
+            }}
+          }
+        }
+      }
+      hideRemover();
+    });
+    document.getElementById('hl-remove-btn').addEventListener('click',()=>{
+      if(pendingNode){const p=pendingNode.parentNode; while(pendingNode.firstChild) p.insertBefore(pendingNode.firstChild,pendingNode);
+        p.removeChild(pendingNode); highlightStack=highlightStack.filter(el=>el!==pendingNode); }
+      else if(pendingRange && hlList){try{hlList.delete(pendingRange);}catch(_){}
+        highlightStack=highlightStack.filter(el=>el!==pendingRange);}
+      hideRemover();
+    });
+    window.addEventListener('scroll',()=>document.getElementById('hl-remove-toolbar').style.display='none',{passive:true});
+    window.addEventListener('resize',()=>document.getElementById('hl-remove-toolbar').style.display='none');
+  }
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.querySelectorAll('.text-input').forEach(i=>{
+      i.setAttribute('autocomplete','off');
+      i.addEventListener('input',updateProgress);
+    });
+    document.querySelectorAll('.nav-btn').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.preventDefault(); document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));
+        btn.classList.add('active'); const target=document.getElementById(btn.getAttribute('href').substring(1));
+        if(target) target.scrollIntoView({behavior:'smooth',block:'center'});
+      });
+    });
+    document.getElementById('submit-btn').addEventListener('click',submitAnswers);
+    initHighlightList(); initHighlighting(); updateProgress();
+  });
+</script>
+</body>
+</html>
